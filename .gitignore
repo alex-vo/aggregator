@@ -1,5 +1,4 @@
-*.properties
-
 *.iml
 .idea/
 *.jks
+local.properties
