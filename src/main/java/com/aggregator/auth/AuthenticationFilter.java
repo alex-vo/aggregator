@@ -2,6 +2,7 @@ package com.aggregator.auth;
 
 import com.aggregator.config.AggregatorApp;
 import io.jsonwebtoken.Jwts;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
@@ -28,7 +29,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             abortWithUnauthorized(requestContext);
             return;
         }
-        String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
+        String token = StringUtils.trim(authorizationHeader.substring(AUTHENTICATION_SCHEME.length()));
         try {
             validateToken(token);
         } catch (Exception e) {
