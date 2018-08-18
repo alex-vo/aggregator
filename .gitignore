@@ -1,2 +1,5 @@
+*.properties
+
 *.iml
 .idea/
+*.jks
