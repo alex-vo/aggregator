@@ -1,11 +1,12 @@
 package com.aggregator.auth;
 
+import com.aggregator.auth.domain.GoogleAccessTokenResponse;
 import com.aggregator.config.AggregatorApp;
 import io.jsonwebtoken.Jwts;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
+import javax.ws.rs.*;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -16,10 +17,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
-@Path("/authentication")
+@Slf4j
+@Path("authentication")
 public class AuthenticationEndpoint {
 
     @POST
+    @Path("login")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response authenticateUser(Credentials credentials) {
         try {
@@ -30,12 +33,36 @@ public class AuthenticationEndpoint {
                     .header(HttpHeaders.AUTHORIZATION, token)
                     .build();
         } catch (Exception e) {
-            return Response.status(Response.Status.FORBIDDEN).entity(e.getMessage()).build();
+            log.error("Failed to authorize", e);
+            return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
+        }
+    }
+
+    @GET
+    @Path("googleOAuth2Callback")
+    public Response authenticateWithGoogle(
+            @QueryParam("state") String state,
+            @QueryParam("code") String code
+    ) {
+        if (!StringUtils.equals(state, AggregatorApp.properties.getProperty("google.state.passthrough.value"))) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("invalid passthrough value").build();
+        }
+
+        try {
+            GoogleAccessTokenResponse googleAccessTokenResponse = RestClient.getInstance().retrieveGoogleAccessToken(code);
+            String token = issueToken(googleAccessTokenResponse.getAccessToken());
+            return Response.ok()
+                    .header(HttpHeaders.AUTHORIZATION, token)
+                    .entity("logged in")
+                    .build();
+        } catch (Exception e) {
+            log.error("Failed to authorize with Google", e);
+            return Response.status(Response.Status.UNAUTHORIZED).entity(e.getMessage()).build();
         }
     }
 
     private void authenticate(String username, String password) throws Exception {
-        System.out.println("logged in with valid credentials");
+        log.info("logged in with valid credentials");
     }
 
     private String issueToken(String username) throws IOException, GeneralSecurityException {
